@@ -1,0 +1,59 @@
+sources:
+  events:
+    type: github.github_event
+    archive: "{data_dir}/../2024-10-13-15.json.gz"
+    with_args:
+      max_table_nesting: 2
+
+destinations:
+  warehouse:
+      type: snowflake
+  iceberg_lake:
+    type: iceberg
+    catalog_type: rest
+    credentials:
+      uri: https://you.hosted.lakekeeper.app/catalog
+      warehouse: your-warehouse-name
+      properties:
+        scope: lakekeeper
+        oauth2-server-uri: https://your-auth-server/realms/master/protocol/openid-connect/token
+    filesystem:
+      # bucket for s3 tables - must match Lakekeeper warehouse if defined
+      bucket_url: "s3://your-bucket-name"
+    table_root_layout: "your-warehouse/dlt_project/{dataset_name}/{table_name}"
+
+pipelines:
+  loading_events:
+    source: events
+    destination: iceberg_lake
+    dataset_name: github_events_dataset
+    progress: log
+
+profiles:
+  dev: {}
+  prod: {}
+
+datasets:
+  github_events_dataset:
+    destination:
+      - iceberg_lake
+  reports_dataset:
+    destination:
+      - warehouse
+
+caches:
+  duckdb_local:
+    inputs:
+      - dataset: github_events_dataset
+        tables:
+          "issues_event": "issues_event"
+    outputs:
+      - dataset: reports_dataset
+        tables:
+          dim_issues_actors: dim_issues_actors
+          dim_issues_repos: dim_issues_repos
+
+transformations:
+  aggregate_issues:
+    engine: dbt
+    cache: duckdb_local

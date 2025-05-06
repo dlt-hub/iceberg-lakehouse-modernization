@@ -1,0 +1,28 @@
+sources:
+  events:
+    type: github.github_event
+    archive: "{data_dir}/../2024-10-13-15.json.gz"
+    with_args:
+      max_table_nesting: 2
+
+destinations:
+  warehouse:
+      type: snowflake
+
+pipelines:
+  loading_events:
+    source: events
+    destination: warehouse
+    dataset_name: github_events_dataset
+    progress: log
+
+runtime:
+  dlthub_telemetry: off
+  log_level: WARNING
+  dlthub_dsn: "https://api.scalevector.ai/beacon/your-dummy-id"
+
+profiles:
+  dev: {}
+  prod: {}
+
+ 
